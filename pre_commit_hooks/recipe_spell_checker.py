@@ -7,6 +7,12 @@ from subprocess import Popen, PIPE
 from typing import Optional
 from typing import Sequence
 
+# Removes unicode so that aspell doesn't complain
+def sanitize_input(binary_input):
+    input_str = binary_input.decode("utf-8")
+    sanitized_input = unidecode.unidecode(input_str)
+    return sanitized_input.encode('utf-8')
+
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser()
@@ -14,7 +20,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument('--dictionary', type=str, default=None, help='The custom dictionary to use.')
     args = parser.parse_args(argv)
 
-    dictionary_flag = ("--add-extra-dicts=" + os.path.abspath(args.dictionary)) if args.dictionary else ""
+    dictionary_flag = ""
+    if args.dictionary:
+      dictionary_flag = "--add-extra-dicts=" + os.path.abspath(args.dictionary)
 
     retval = 0
     for filename in args.filenames:
@@ -28,10 +36,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                                      stdin=PIPE,
                                      stdout=PIPE,
                                      stderr=PIPE)
-            inputdata=f.read()
-            input_str = inputdata.decode("utf-8")
-            sanitized_input = unidecode.unidecode(input_str)
-            stdoutdata,stderrdata=process.communicate(input=sanitized_input.encode('utf-8'))
+            inputdata=sanitize_input(f.read())
+            stdoutdata,stderrdata=process.communicate(input=inputdata)
+
             if stderrdata:
               print("Failed to spellcheck", filename.strip())
               print(stderrdata.decode("utf-8"))
@@ -42,6 +49,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
               print('\n'.join(sorted(list(dict.fromkeys(results.split())))))
               print()
               retval += 1
+
     return retval
 
 
