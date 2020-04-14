@@ -3,5 +3,4 @@
     description: Ensures that there aren't any spelling mistakes in the recipes
     entry: recipe-spell-checker
     language: python
-    types: [python]
-    args: [-i]
+    types: [html]
